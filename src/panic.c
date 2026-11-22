@@ -20,9 +20,9 @@ panic(char *msg)
 void
 panic_on_dbus_err(DBusError *err)
 {
+    char msg[512];
     if (dbus_error_is_set(err)) {
-        char msg[512];
-        snprintf(msg, 512, "D-Bus Error:\n\t%s\n\t%s\n", err->name, err->message);
+        snprintf(msg, sizeof(msg), "D-Bus Error:\n\t%s\n\t%s\n", err->name, err->message);
         dbus_error_free(err);
         panic(msg);
     }

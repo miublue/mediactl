@@ -10,11 +10,15 @@ static DBusConnection *con;
 
 // call an mpris method over DBus and return DBusMessage reply.
 // BRO SERIOUSLY dont forget to unref the reply once you're done with it c:
-static DBusMessage* call_method(
+static DBusMessage*
+call_method(
         const char *destination,
         const char *path,
         const char *interface,
-        const char *method) {
+        const char *method)
+{
+    // allocate that bih here because i like polluted scopes
+    char errmsg[512];
 
     // send the PlayPause command to the player
     DBusMessage *msg = dbus_message_new_method_call(destination, path, interface, method);
@@ -24,8 +28,7 @@ static DBusMessage* call_method(
     DBusPendingCall *call;
     dbus_bool_t success = dbus_connection_send_with_reply(con, msg, &call, 100);
     if (!success || call == NULL) {
-        char errmsg[512];
-        snprintf(errmsg, 512, "DBus %s call unsuccessful", method);
+        snprintf(errmsg, sizeof(errmsg), "DBus %s call unsuccessful", method);
         panic(errmsg);
     }
 
@@ -38,8 +41,7 @@ static DBusMessage* call_method(
     DBusMessage* reply = dbus_pending_call_steal_reply(call);
     dbus_pending_call_unref(call);
     if (reply == NULL) {
-        char errmsg[512];
-        snprintf(errmsg, 512, "Got no reply from DBus %s call", method);
+        snprintf(errmsg, sizeof(errmsg), "Got no reply from DBus %s call", method);
         panic(errmsg);
     }
 
