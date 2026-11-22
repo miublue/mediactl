@@ -7,9 +7,13 @@ Designed as a zero-redundancy alternative to [the accepted means of binding mult
 ### build from src, its easy c:
 Requires libdbus-1 headers: `sudo apt update && sudo apt install -y libdbus-1-dev`
 
-then build... `./build.sh`
+Build with:
 
-optionally install with `ln` or `cp` or whatever, e.g. `cp ./mediactl /usr/bin/mediactl`
+    make
+
+To install, simply type:
+
+    make install
 
 # Usage
 `mediactl` to list all mediaplayers found over D-Bus
