@@ -84,43 +84,37 @@ void mpris_free(void)
 void mpris_load_media_player_names(char ***players_dest, int *players_count)
 {
     if (players_dest == NULL || players_count == NULL || con == NULL)
-        panic("Bad args passed to loadMediaPlayerNames");
+        panic("Bad args passed to load_media_player_names");
 
     (*players_dest) = NULL;
     (*players_count) = 0;
 
     // send the ListNames command to the DBus
-    DBusMessage* reply = _call_method(
-        "org.freedesktop.DBus", //destination
-        "/",                    // path
-        "org.freedesktop.DBus", // interface
-        "ListNames");           // method
+    DBusMessage* reply = _call_method("org.freedesktop.DBus", "/", "org.freedesktop.DBus", "ListNames");
 
     // will check this after attempting to get args
     DBusError err = {0};
     dbus_error_init(&err);
 
     // pull list of players from reply
-    int m_argc;
+    int args_count;
     char **args;
-    dbus_message_get_args(reply, &err, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, &m_argc, DBUS_TYPE_INVALID);
+    dbus_message_get_args(reply, &err, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, &args_count, DBUS_TYPE_INVALID);
     panic_on_dbus_err(&err);
 
     // filter for mediaplayers implementing mpris
     const char* mpris_namespace = "org.mpris.MediaPlayer2";
     const int len = strlen(mpris_namespace);
 
-    for (int i = 0; i < m_argc; ++i) {
+    for (int i = 0; i < args_count; ++i) {
         // check namespace matches
-        if (strncmp(args[i], mpris_namespace, len) == 0){
+        if (strncmp(args[i], mpris_namespace, len) == 0) {
             (*players_count) += 1;
 
             // dynamically build a list of the matching strings on the heap
             size_t new_size = sizeof(args[i]) * (*players_count);
-            if ((*players_dest) == NULL)
-                (*players_dest) = malloc(new_size);
-            else
-                (*players_dest) = realloc(*players_dest, new_size);
+            if ((*players_dest) == NULL) (*players_dest) = malloc(new_size);
+            else (*players_dest) = realloc(*players_dest, new_size);
             (*players_dest)[(*players_count)-1] = args[i];
         }
     }
@@ -134,10 +128,8 @@ void mpris_call_and_forget(const char *player_name, const char *method)
 
 void panic(char *msg)
 {
-    if (msg != NULL)
-        printf("mediactl error:\n\t%s\n", msg);
-    else
-        printf("mediactl encountered an unexpected error, exiting...\n");
+    if (msg != NULL) printf("mediactl error:\n\t%s\n", msg);
+    else printf("mediactl encountered an unexpected error, exiting...\n");
     exit(1);
 }
 
@@ -159,7 +151,7 @@ int main(int argc, char** argv)
     int players_count;
     mpris_load_media_player_names(&media_players, &players_count);
 
-    for (int i = 0; i < players_count; i++) {
+    for (int i = 0; i < players_count; ++i) {
         printf("%s\n", media_players[i]);
         if (argc > 1 && argv[1] != NULL)
             mpris_call_and_forget(media_players[i], argv[1]);
