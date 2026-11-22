@@ -3,8 +3,6 @@ Designed as a zero-redundancy alternative to [the accepted means of binding mult
 
 # Installation
 
-### Download the x86-64 binary, or...
-### build from src, its easy c:
 Requires libdbus-1 headers: `sudo apt update && sudo apt install -y libdbus-1-dev`
 
 Build with:
@@ -24,7 +22,7 @@ To install, simply type:
 
 e.g, to play: `mediactl Play`
 
-A list of all MPRIS methods can be found [here](https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html), but keep in mind not everything fully implements it!
+A list of all MPRIS methods can be found [here](https://specifications.freedesktop.org/mpris/latest/Player_Interface.html), but keep in mind not everything fully implements it!
 
 # Example `mediactl` usage in i3 config
 The original purpose of this program was to enable my keyboard's multimedia keys after installing i3.
