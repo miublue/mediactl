@@ -1,17 +1,20 @@
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <dbus/dbus.h>
 
-#include "panic.h"
-
+void mpris_init(void);
+void mpris_free(void);
+void mpris_load_media_player_names(char ***players_dest, int *players_count);
+void mpris_call_and_forget(const char *player_name, const char *method);
+void panic(char *msg);
+void panic_on_dbus_err(DBusError *err);
 
 static DBusConnection *con;
 
 // call an mpris method over DBus and return DBusMessage reply.
 // BRO SERIOUSLY dont forget to unref the reply once you're done with it c:
-static DBusMessage*
-call_method(
+static DBusMessage *_call_method(
         const char *destination,
         const char *path,
         const char *interface,
@@ -38,7 +41,7 @@ call_method(
     dbus_pending_call_block(call);
 
     // check for our reply
-    DBusMessage* reply = dbus_pending_call_steal_reply(call);
+    DBusMessage *reply = dbus_pending_call_steal_reply(call);
     dbus_pending_call_unref(call);
     if (reply == NULL) {
         snprintf(errmsg, sizeof(errmsg), "Got no reply from DBus %s call", method);
@@ -49,24 +52,17 @@ call_method(
 }
 
 // call_method, diregard any replies
-static void
-call_method_and_forget(
+static void _call_method_and_forget(
         const char *destination,
         const char *path,
         const char *interface,
         const char *method)
 {
-    DBusMessage* reply = call_method(destination, path, interface, method);
+    DBusMessage *reply = _call_method(destination, path, interface, method);
     dbus_message_unref(reply);
 }
 
-
-/*
-                    HEADER DEFINITIONS
-*/
-
-void
-mpris_init(void)
+void mpris_init(void)
 {
     // will check this after attempting a dbus connection
     DBusError err = {0};
@@ -77,8 +73,7 @@ mpris_init(void)
     panic_on_dbus_err(&err);
 }
 
-void
-mpris_free(void)
+void mpris_free(void)
 {
     // connection must be closed before dropping the last ref
     dbus_connection_close(con);
@@ -86,8 +81,7 @@ mpris_free(void)
 }
 
 // load a list of media player names
-void
-mpris_load_media_player_names(char ***players_dest, int *players_count)
+void mpris_load_media_player_names(char ***players_dest, int *players_count)
 {
     if (players_dest == NULL || players_count == NULL || con == NULL)
         panic("Bad args passed to loadMediaPlayerNames");
@@ -96,7 +90,7 @@ mpris_load_media_player_names(char ***players_dest, int *players_count)
     (*players_count) = 0;
 
     // send the ListNames command to the DBus
-    DBusMessage* reply = call_method(
+    DBusMessage* reply = _call_method(
         "org.freedesktop.DBus", //destination
         "/",                    // path
         "org.freedesktop.DBus", // interface
@@ -123,21 +117,54 @@ mpris_load_media_player_names(char ***players_dest, int *players_count)
 
             // dynamically build a list of the matching strings on the heap
             size_t new_size = sizeof(args[i]) * (*players_count);
-
             if ((*players_dest) == NULL)
                 (*players_dest) = malloc(new_size);
             else
                 (*players_dest) = realloc(*players_dest, new_size);
-
             (*players_dest)[(*players_count)-1] = args[i];
         }
     }
     dbus_message_unref(reply);
 }
 
-void
-mpris_call_and_forget(const char *player_name, const char *method)
+void mpris_call_and_forget(const char *player_name, const char *method)
 {
-    call_method_and_forget(player_name, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", method);
+    _call_method_and_forget(player_name, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", method);
 }
 
+void panic(char *msg)
+{
+    if (msg != NULL)
+        printf("mediactl error:\n\t%s\n", msg);
+    else
+        printf("mediactl encountered an unexpected error, exiting...\n");
+    exit(1);
+}
+
+void panic_on_dbus_err(DBusError *err)
+{
+    char msg[512];
+    if (dbus_error_is_set(err)) {
+        snprintf(msg, sizeof(msg), "D-Bus Error:\n\t%s\n\t%s\n", err->name, err->message);
+        dbus_error_free(err);
+        panic(msg);
+    }
+}
+
+int main(int argc, char** argv)
+{
+    mpris_init();
+
+    char **media_players;
+    int players_count;
+    mpris_load_media_player_names(&media_players, &players_count);
+
+    for (int i = 0; i < players_count; i++) {
+        printf("%s\n", media_players[i]);
+        if (argc > 1 && argv[1] != NULL)
+            mpris_call_and_forget(media_players[i], argv[1]);
+    }
+
+    mpris_free();
+    return 0;
+}

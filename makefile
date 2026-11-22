@@ -4,7 +4,7 @@ PREFIX=/usr/local
 CFLAGS=-Wall -Werror -Wextra
 
 all:
-	${CC} -O2 -o mediactl -I. src/*.c ${CFLAGS} ${LIBS}
+	${CC} -O2 -o mediactl mediactl.c ${CFLAGS} ${LIBS}
 
 install: all
 	mkdir -p ${PREFIX}/bin
